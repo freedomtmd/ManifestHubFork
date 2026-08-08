@@ -1,24 +1,28 @@
 name: Daily Sync DepotKeys
 
 on:
-  # 定时每日运行 UTC 0点，对应北京时间早上8点；可自行修改cron
   schedule:
     - cron: '0 0 * * *'
-  # 支持手动点击运行
   workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # 整体任务超时，10分钟没跑完直接终止
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # 只拉取最新1个commit，不要全量历史，解决fetch卡死
+          fetch-depth: 1
 
       - name: Download depotkeys.json
         run: |
-          wget -O depotkeys.json https://api.993499094.xyz/depotkeys.json
+          if ! wget -O depotkeys.json https://api.993499094.xyz/depotkeys.json; then
+            echo "Download failed, skip run"
+            exit 0
+          fi
 
       - name: Zip the json file
         run: |
@@ -32,8 +36,10 @@ jobs:
       - name: Commit & Push changes
         run: |
           git add depotkeys.zip
-          git status
-          git diff --cached --quiet || {
+          # 判断是否有变更，无变更直接退出
+          if git diff --cached --quiet; then
+            echo "No file changes, skip commit"
+          else
             git commit -m "🤖 Auto sync depotkeys $(date '+%Y-%m-%d')"
             git push origin main
-          }
+          fi
