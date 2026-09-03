@@ -24,6 +24,13 @@ jobs:
             exit 0
           fi
 
+      - name: Download appaccesstokens.json
+        run: |
+          if ! wget -O appaccesstokens.json https://api.993499094.xyz/appaccesstokens.json; then
+            echo "Download appaccesstokens failed, skip run"
+            exit 0
+          fi
+
       - name: Zip the json file
         run: |
           zip depotkeys.zip depotkeys.json
@@ -35,7 +42,7 @@ jobs:
 
       - name: Commit & Push changes
         run: |
-          git add depotkeys.zip
+          git add depotkeys.zip appaccesstokens.json
           # 判断是否有变更，无变更直接退出
           if git diff --cached --quiet; then
             echo "No file changes, skip commit"
